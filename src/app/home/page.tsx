@@ -6,21 +6,13 @@ import Footer from "@/components/Footer";
 import Image from "next/image";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Data } from "@/lib/data";
-import { useState, useEffect } from "react";
-import { Download, Globe, Shield, Zap, Check, AlertCircle, Loader2, Play } from "lucide-react";
+import { useState } from "react";
+import { Download, Globe, Shield, Zap, Check, AlertCircle, Loader2 } from "lucide-react";
 
 interface DownloadState {
     isDownloading: boolean;
     error: string | null;
     success: boolean;
-    progress: number;
-}
-
-interface VideoInfo {
-    thumbnail: string | null;
-    title: string | null;
-    duration: string | null;
-    platform: string | null;
 }
 
 const Page = (): React.ReactElement => {
@@ -29,52 +21,9 @@ const Page = (): React.ReactElement => {
         isDownloading: false,
         error: null,
         success: false,
-        progress: 0,
-    } );
-    const [ videoInfo, setVideoInfo ] = useState<VideoInfo>( {
-        thumbnail: null,
-        title: null,
-        duration: null,
-        platform: null,
     } );
 
-    // Fetch video info when URL changes
-    useEffect( () => {
-        if ( url.trim() && detectPlatform( url ) !== 'Unknown' ) {
-            fetchVideoInfo( url );
-        } else {
-            setVideoInfo( {
-                thumbnail: null,
-                title: null,
-                duration: null,
-                platform: null,
-            } );
-        }
-    }, [ url ] );
 
-    const fetchVideoInfo = async ( videoUrl: string ) => {
-        try {
-            const response = await fetch( '/api/video-info', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify( { url: videoUrl } ),
-            } );
-
-            if ( response.ok ) {
-                const data = await response.json();
-                setVideoInfo( {
-                    thumbnail: data.thumbnail,
-                    title: data.title,
-                    duration: data.duration,
-                    platform: data.platform,
-                } );
-            }
-        } catch ( error ) {
-            console.error( 'Failed to fetch video info:', error );
-        }
-    };
 
     const detectPlatform = ( url: string ): string => {
         if ( url.includes( 'youtube.com' ) || url.includes( 'youtu.be' ) ) {
@@ -107,7 +56,6 @@ const Page = (): React.ReactElement => {
             isDownloading: true,
             error: null,
             success: false,
-            progress: 0,
         } );
 
         try {
@@ -133,19 +81,7 @@ const Page = (): React.ReactElement => {
                 throw new Error( errorMessage );
             }
 
-            // Simulate progress updates during download
-            const progressInterval = setInterval( () => {
-                setState( prev => ( {
-                    ...prev,
-                    progress: Math.min( prev.progress + Math.random() * 15, 90 )
-                } ) );
-            }, 500 );
-
             const blob = await response.blob();
-            clearInterval( progressInterval );
-
-            setState( prev => ( { ...prev, progress: 100 } ) );
-
             const downloadUrl = window.URL.createObjectURL( blob );
             const link = document.createElement( 'a' );
             link.href = downloadUrl;
@@ -165,18 +101,11 @@ const Page = (): React.ReactElement => {
                 ...prev,
                 isDownloading: false,
                 success: true,
-                progress: 0,
             } ) );
 
             setTimeout( () => {
                 setState( prev => ( { ...prev, success: false } ) );
                 setUrl( '' );
-                setVideoInfo( {
-                    thumbnail: null,
-                    title: null,
-                    duration: null,
-                    platform: null,
-                } );
             }, 3000 );
 
         } catch ( error ) {
@@ -184,7 +113,6 @@ const Page = (): React.ReactElement => {
                 ...prev,
                 isDownloading: false,
                 error: error instanceof Error ? error.message : 'An error occurred',
-                progress: 0,
             } ) );
         }
     };
@@ -262,36 +190,6 @@ const Page = (): React.ReactElement => {
                                 </Button>
                             </div>
 
-                            {/* Video Preview */ }
-                            { videoInfo.thumbnail && (
-                                <div className="max-w-md mx-auto mb-6 p-4 bg-white/[0.05] backdrop-blur-sm border border-white/[0.08] rounded-2xl">
-                                    <div className="relative">
-                                        <img
-                                            src={ videoInfo.thumbnail }
-                                            alt="Video thumbnail"
-                                            className="w-full h-48 object-cover rounded-xl"
-                                        />
-                                        <div className="absolute inset-0 bg-black/20 rounded-xl flex items-center justify-center">
-                                            <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-                                                <Play className="w-6 h-6 text-white ml-1" />
-                                            </div>
-                                        </div>
-                                    </div>
-                                    { videoInfo.title && (
-                                        <div className="mt-3 text-left">
-                                            <h3 className="text-white font-medium text-sm line-clamp-2">
-                                                { videoInfo.title }
-                                            </h3>
-                                            { videoInfo.duration && (
-                                                <p className="text-gray-400 text-xs mt-1">
-                                                    Duration: { videoInfo.duration }
-                                                </p>
-                                            ) }
-                                        </div>
-                                    ) }
-                                </div>
-                            ) }
-
                             {/* Status Messages */ }
                             { url && currentPlatform && currentPlatform !== 'Unknown' && (
                                 <div className="flex items-center justify-center gap-2 text-green-400 mb-4">
@@ -327,15 +225,8 @@ const Page = (): React.ReactElement => {
 
                             { state.isDownloading && (
                                 <div className="max-w-md mx-auto">
-                                    <div className="mb-2 flex justify-between text-sm text-gray-400">
-                                        <span>Downloading...</span>
-                                        <span>{ Math.round( state.progress ) }%</span>
-                                    </div>
                                     <div className="h-2 bg-white/[0.1] rounded-full overflow-hidden">
-                                        <div
-                                            className="h-full bg-gradient-to-r from-blue-500 to-green-500 rounded-full transition-all duration-300 ease-out"
-                                            style={ { width: `${ state.progress }%` } }
-                                        />
+                                        <div className="h-full bg-white rounded-full animate-pulse" />
                                     </div>
                                 </div>
                             ) }
